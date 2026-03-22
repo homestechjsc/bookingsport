@@ -1,8 +1,10 @@
 const bookingOnline = {
     init: () => {
-        const checkFirebase = setInterval(() => {
+        // Sửa tên biến đồng nhất để không bị lỗi "not defined"
+        const checkFirebaseReady = setInterval(() => {
             if (window.db && window.onValue) {
-                clearInterval(checkReady); // Đã fix tên biến checkReady
+                clearInterval(checkFirebaseReady); // Dòng này đã khớp tên với biến ở trên
+                console.log("🚀 Firebase kết nối thành công!");
                 bookingOnline.startApp();
             }
         }, 100);
@@ -30,49 +32,69 @@ const bookingOnline = {
         header.innerHTML = html;
     },
 
-    loadData: () => {
-        const date = document.getElementById('view-date').value;
-        if (!window.db || !window.onValue) return;
+   loadData: () => {
+    const date = document.getElementById('view-date').value;
+    if (!window.db || !window.onValue) return;
 
-        const rootRef = window.ref(window.db, "/");
-        window.onValue(rootRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            bookingOnline.renderAll(data.courts || {}, data.bookings || {}, date);
-        });
-    },
+    // Lắng nghe từ gốc "/" để lấy được cả nhánh 'courts' và nhánh cấu hình giá
+    const rootRef = window.ref(window.db, "/");
+    window.onValue(rootRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        
+        // DÒNG NÀY ĐỂ KIỂM TRA: Hãy mở Console (F12) để xem cấu trúc thực tế
+        console.log("Dữ liệu từ Firebase:", data);
+        
+        bookingOnline.renderAll(data.courts || {}, data.bookings || {}, date, data);
+    });
+},
 
-    renderAll: (courts, bookings, date) => {
-        const namesCol = document.getElementById('court-names-col');
-        const rowsContainer = document.getElementById('timeline-rows');
-        if (!namesCol || !rowsContainer) return;
+renderAll: (courts, bookings, date, allData) => {
+    const namesCol = document.getElementById('court-names-col');
+    const rowsContainer = document.getElementById('timeline-rows');
+    if (!namesCol || !rowsContainer) return;
 
-        let namesHtml = '';
-        let rowsHtml = '';
-        const today = new Date().toISOString().split('T')[0];
+    let namesHtml = '';
+    let rowsHtml = '';
+    const today = new Date().toISOString().split('T')[0];
 
-        Object.entries(courts).forEach(([id, c]) => {
-            // Render Cột tên sân
-            namesHtml += `
-                <div class="h-16 flex flex-col justify-center px-2 border-b border-slate-50 bg-white">
-                    <span class="text-[10px] font-black uppercase text-slate-700 truncate">${c.Ten_San || id}</span>
-                    <span class="text-[8px] font-bold text-blue-500 italic uppercase">${c.Loai_San || 'Bida'}</span>
-                </div>`;
+    // TRUY XUẤT ĐÚNG NHÁNH THEO ẢNH: config -> priceList
+    const priceTable = allData.config?.priceList || {};
 
-            // Lọc lịch đặt
-            const courtBks = Object.entries(bookings).filter(([bid, b]) => b.Court_ID === id && b.Ngay === date);
-            
-            // Render Hàng Timeline
-            rowsHtml += `
-                <div class="h-16 flex border-b border-slate-50 relative w-max" style="min-width: calc(17 * 60px);" onclick="bookingOnline.handleTimelineClick(event, '${id}', '${date}')">
-                    ${Array.from({length: 17}).map(() => `<div class="hour-cell border-l border-slate-50 flex-shrink-0" style="width: 60px;"></div>`).join('')}
-                    ${bookingOnline.renderSlots(courtBks)}
-                    ${(date === today && c.Trang_Thai === "Đang chơi") ? bookingOnline.renderLiveStatus(c.Gio_Vao) : ''}
-                </div>`;
-        });
+    Object.entries(courts).forEach(([id, c]) => {
+        // Lấy loại sân từ dữ liệu sân (ví dụ: Standard, VIP1, VIP2...)
+        const type = c.Loai_San || 'Standard';
+        
+        // Tìm giá tương ứng trong priceList (dùng đúng tên key như trong ảnh)
+        const price = priceTable[type] || 0;
 
-        namesCol.innerHTML = namesHtml;
-        rowsContainer.innerHTML = rowsHtml;
-    },
+        namesHtml += `
+            <div class="h-16 flex flex-col justify-center px-2 border-b border-slate-50 bg-white">
+                <span class="text-[10px] font-black uppercase text-slate-700 truncate leading-tight">
+                    ${c.Ten_San || id}
+                </span>
+                <div class="flex flex-col mt-0.5">
+                    <span class="text-[8px] font-bold text-blue-500 italic uppercase leading-none">
+                        ${type}
+                    </span>
+                    <span class="text-[9px] font-black text-rose-600 mt-1">
+                        ${price > 0 ? (price / 1000).toLocaleString() + 'K' : '---'}
+                    </span>
+                </div>
+            </div>`;
+
+        // Phần render timeline bên phải (giữ nguyên)
+        const courtBks = Object.entries(bookings).filter(([bid, b]) => b.Court_ID === id && b.Ngay === date);
+        rowsHtml += `
+            <div class="h-16 flex border-b border-slate-50 relative w-max" style="min-width: calc(17 * 60px);" onclick="bookingOnline.handleTimelineClick(event, '${id}', '${date}')">
+                ${Array.from({length: 17}).map(() => `<div class="hour-cell border-l border-slate-50 flex-shrink-0" style="width: 60px;"></div>`).join('')}
+                ${bookingOnline.renderSlots(courtBks)}
+                ${(date === today && c.Trang_Thai === "Đang chơi") ? bookingOnline.renderLiveStatus(c.Gio_Vao) : ''}
+            </div>`;
+    });
+
+    namesCol.innerHTML = namesHtml;
+    rowsContainer.innerHTML = rowsHtml;
+},
 
     renderSlots: (bookings) => {
         if (!bookings || bookings.length === 0) return ''; // Fix lỗi undefined
