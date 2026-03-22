@@ -85,11 +85,13 @@ renderAll: (courts, bookings, date, allData) => {
         // Phần render timeline bên phải (giữ nguyên)
         const courtBks = Object.entries(bookings).filter(([bid, b]) => b.Court_ID === id && b.Ngay === date);
         rowsHtml += `
-            <div class="h-16 flex border-b border-slate-50 relative w-max" style="min-width: calc(17 * 60px);" onclick="bookingOnline.handleTimelineClick(event, '${id}', '${date}')">
-                ${Array.from({length: 17}).map(() => `<div class="hour-cell border-l border-slate-50 flex-shrink-0" style="width: 60px;"></div>`).join('')}
-                ${bookingOnline.renderSlots(courtBks)}
-                ${(date === today && c.Trang_Thai === "Đang chơi") ? bookingOnline.renderLiveStatus(c.Gio_Vao) : ''}
-            </div>`;
+    <div class="h-16 flex border-b border-slate-50 relative w-max" 
+         style="min-width: calc(17 * 60px);" 
+         onclick="bookingOnline.handleTimelineClick(event, '${id}', '${date}', '${c.Ten_San || id}')">
+        ${Array.from({length: 17}).map(() => `<div class="hour-cell border-l border-slate-50 flex-shrink-0" style="width: 60px;"></div>`).join('')}
+        ${bookingOnline.renderSlots(courtBks)}
+        ${(date === today && c.Trang_Thai === "Đang chơi") ? bookingOnline.renderLiveStatus(c.Gio_Vao) : ''}
+    </div>`;
     });
 
     namesCol.innerHTML = namesHtml;
@@ -144,36 +146,55 @@ closeForm: () => {
             </div>`;
     },
 
-    handleTimelineClick: (event, courtId, date) => {
-        // Ngăn chặn nếu bấm trúng ô đã đặt
-        if (event.target.closest('.online-booking-slot')) return;
+    handleTimelineClick: (event, courtId, date, courtName) => {
+    if (event.target.closest('.online-booking-slot')) return;
 
-        const rect = event.currentTarget.getBoundingClientRect();
-        const offsetX = event.clientX - rect.left;
-        let hourDecimal = (offsetX / 60) + 6;
-        hourDecimal = Math.round(hourDecimal * 2) / 2; 
-        
-        const hour = Math.floor(hourDecimal);
-        const minute = (hourDecimal % 1) * 60;
-        const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    let hourDecimal = (offsetX / 60) + 6;
+    hourDecimal = Math.round(hourDecimal * 2) / 2; 
+    
+    const hour = Math.floor(hourDecimal);
+    const minute = (hourDecimal % 1) * 60;
+    const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
-        document.getElementById('book-court-id').value = courtId;
-        document.getElementById('book-date').value = date;
-        document.getElementById('book-start').value = startTime;
-        document.getElementById('book-end').value = endTime;
+    // Lấy các thẻ HTML
+    const elId = document.getElementById('book-court-id');
+    const elDate = document.getElementById('book-date');
+    const elStart = document.getElementById('book-start');
+    const elEnd = document.getElementById('book-end');
+    const elDisplayName = document.getElementById('display-court-name');
+    const elDisplayDate = document.getElementById('display-booking-date'); // Thẻ hiển thị ngày mới
 
-        const form = document.getElementById('quick-booking-form');
-        const overlay = document.getElementById('form-overlay');
-        
-        if(overlay && form) {
-            overlay.classList.remove('hidden');
-            setTimeout(() => {
-                overlay.classList.add('opacity-100');
-                form.classList.add('active');
-            }, 10);
-        }
-    },
+    // Gán dữ liệu vào các input ẩn
+    if (elId) elId.value = courtId;
+    if (elDate) elDate.value = date;
+    if (elStart) elStart.value = startTime;
+    if (elEnd) elEnd.value = endTime;
+    
+    // ĐỔ DỮ LIỆU HIỂN THỊ LÊN FORM
+    if (elDisplayName) {
+        elDisplayName.innerText = courtName || courtId;
+    }
+
+    if (elDisplayDate && date) {
+        // Chuyển YYYY-MM-DD thành DD/MM/YYYY cho thân thiện
+        const [y, m, d] = date.split('-');
+        elDisplayDate.innerText = `${d}/${m}/${y}`;
+    }
+
+    // Hiển thị Form
+    const form = document.getElementById('quick-booking-form');
+    const overlay = document.getElementById('form-overlay');
+    if(overlay && form) {
+        overlay.classList.remove('hidden');
+        setTimeout(() => {
+            overlay.classList.add('opacity-100');
+            form.classList.add('active');
+        }, 10);
+    }
+},
 
     closeForm: () => {
         document.getElementById('form-overlay').classList.remove('opacity-100');
