@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đặt Sân Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .timeline-container { display: grid; grid-template-columns: 80px 1fr; border-radius: 1rem; overflow: hidden; background: white; }
+        .sticky-column { position: sticky; left: 0; z-index: 30; background: white; border-right: 1px solid #f1f5f9; }
+        .scrollable-timeline { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #timeline-rows, #timeline-hours-header { width: max-content; }
+        .scrollable-timeline::-webkit-scrollbar { display: none; }
+        #quick-booking-form { transition: transform 0.3s ease-out; transform: translateY(100%); }
+        #quick-booking-form.active { transform: translateY(0); }
+    </style>
+</head>
+<body class="bg-slate-50 antialiased">
+    <header class="bg-white sticky top-0 z-40 border-b p-4 flex justify-between items-center">
+        <h1 class="font-black text-blue-600 italic">PICKLEBALL | BOOKING ONLINE</h1>
+        <input type="date" id="view-date" class="bg-slate-100 rounded-lg p-2 text-xs font-bold border-none outline-none">
+    </header>
+
+    <main class="p-2">
+        <div class="timeline-container shadow-2xl border border-slate-200">
+            <div class="sticky-column flex flex-col pt-10" id="court-names-col"></div>
+            <div class="scrollable-timeline">
+                <div id="timeline-hours-header" class="flex bg-slate-50 border-b h-10"></div>
+                <div id="timeline-rows" class="relative"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="form-overlay" class="fixed inset-0 bg-black/40 z-[50] hidden opacity-0 transition-opacity"></div>
+    <div id="quick-booking-form" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] z-[60] p-6 shadow-2xl border-t">
+        <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" onclick="bookingOnline.closeForm()"></div>
+        <div class="space-y-4">
+            <input type="hidden" id="book-court-id"><input type="hidden" id="book-date">
+            <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+                <input type="time" id="book-start" class="bg-slate-50 p-3 rounded-xl" >
+                <input type="time" id="book-end" class="bg-slate-50 p-3 rounded-xl border-2 border-blue-500 text-blue-600">
+            </div>
+            <input type="text" id="book-name" placeholder="Tên của bạn" class="w-full bg-slate-50 p-4 rounded-xl font-bold border-none outline-none focus:ring-2 ring-blue-500">
+            <input type="tel" id="book-phone" placeholder="Số điện thoại" class="w-full bg-slate-50 p-4 rounded-xl font-bold border-none outline-none focus:ring-2 ring-blue-500">
+            <button onclick="bookingOnline.confirm()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase shadow-lg">Xác nhận đặt</button>
+        </div>
+    </div>
+
+    <<script type="module">
+    // 1. Nhập cấu hình Firebase trước
+    import './js/firebase-config.js'; 
+    // 2. Nhập logic đặt sân
+    import './js/booking-logic.js';
+
+    // 3. Đợi một chút để đảm bảo các biến window đã sẵn sàng
+    const checkReady = setInterval(() => {
+        if (window.db && window.onValue) {
+            clearInterval(checkReady);
+            console.log("🚀 Tất cả hệ thống đã sẵn sàng!");
+            if (window.bookingOnline) {
+                window.bookingOnline.init();
+            }
+        }
+    }, 100);
+</script>
+</body>
+</html>
