@@ -95,7 +95,21 @@ renderAll: (courts, bookings, date, allData) => {
     namesCol.innerHTML = namesHtml;
     rowsContainer.innerHTML = rowsHtml;
 },
+closeForm: () => {
+    const form = document.getElementById('quick-booking-form');
+    const overlay = document.getElementById('form-overlay');
 
+    if (form && overlay) {
+        // 1. Chạy hiệu ứng ẩn (trượt xuống và mờ đi)
+        overlay.classList.remove('opacity-100');
+        form.classList.remove('active');
+
+        // 2. Đợi hiệu ứng kết thúc (300ms) rồi mới ẩn hoàn toàn khỏi màn hình
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 300);
+    }
+},
     renderSlots: (bookings) => {
         if (!bookings || bookings.length === 0) return ''; // Fix lỗi undefined
         return bookings.map(([id, b]) => {
