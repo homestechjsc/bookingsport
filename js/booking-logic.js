@@ -1,9 +1,8 @@
-const bookingOnline = {
+export const bookingOnline = {
     init: () => {
-        // Sửa tên biến đồng nhất để không bị lỗi "not defined"
         const checkFirebaseReady = setInterval(() => {
             if (window.db && window.onValue) {
-                clearInterval(checkFirebaseReady); // Dòng này đã khớp tên với biến ở trên
+                clearInterval(checkFirebaseReady);
                 console.log("🚀 Firebase kết nối thành công!");
                 bookingOnline.startApp();
             }
@@ -15,9 +14,7 @@ const bookingOnline = {
         if (dateInput && !dateInput.value) {
             dateInput.value = new Date().toISOString().split('T')[0];
         }
-        // Lắng nghe sự kiện đổi ngày
         dateInput.addEventListener('change', () => bookingOnline.loadData());
-        
         bookingOnline.loadHoursHeader();
         bookingOnline.loadData();
     },
@@ -32,88 +29,74 @@ const bookingOnline = {
         header.innerHTML = html;
     },
 
-   loadData: () => {
-    const date = document.getElementById('view-date').value;
-    if (!window.db || !window.onValue) return;
+    loadData: () => {
+        const date = document.getElementById('view-date').value;
+        if (!window.db || !window.onValue) return;
 
-    // Lắng nghe từ gốc "/" để lấy được cả nhánh 'courts' và nhánh cấu hình giá
-    const rootRef = window.ref(window.db, "/");
-    window.onValue(rootRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        
-        // DÒNG NÀY ĐỂ KIỂM TRA: Hãy mở Console (F12) để xem cấu trúc thực tế
-        console.log("Dữ liệu từ Firebase:", data);
-        
-        bookingOnline.renderAll(data.courts || {}, data.bookings || {}, date, data);
-    });
-},
+        const rootRef = window.ref(window.db, "/");
+        window.onValue(rootRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            console.log("Dữ liệu từ Firebase:", data);
+            bookingOnline.renderAll(data.courts || {}, data.bookings || {}, date, data);
+        });
+    },
 
-renderAll: (courts, bookings, date, allData) => {
-    const namesCol = document.getElementById('court-names-col');
-    const rowsContainer = document.getElementById('timeline-rows');
-    if (!namesCol || !rowsContainer) return;
+    renderAll: (courts, bookings, date, allData) => {
+        const namesCol = document.getElementById('court-names-col');
+        const rowsContainer = document.getElementById('timeline-rows');
+        if (!namesCol || !rowsContainer) return;
 
-    let namesHtml = '';
-    let rowsHtml = '';
-    const today = new Date().toISOString().split('T')[0];
+        // Xóa nội dung cũ (icon loading) trước khi vẽ
+        namesCol.innerHTML = '';
+        rowsContainer.innerHTML = '';
 
-    // TRUY XUẤT ĐÚNG NHÁNH THEO ẢNH: config -> priceList
-    const priceTable = allData.config?.priceList || {};
+        let namesHtml = '';
+        let rowsHtml = '';
+        const today = new Date().toISOString().split('T')[0];
+        const priceTable = allData.config?.priceList || {};
 
-    Object.entries(courts).forEach(([id, c]) => {
-        // Lấy loại sân từ dữ liệu sân (ví dụ: Standard, VIP1, VIP2...)
-        const type = c.Loai_San || 'Standard';
-        
-        // Tìm giá tương ứng trong priceList (dùng đúng tên key như trong ảnh)
-        const price = priceTable[type] || 0;
+        // Khai báo lại courtEntries để vòng lặp hoạt động
+        const courtEntries = Object.entries(courts);
 
-        namesHtml += `
-            <div class="h-16 flex flex-col justify-center px-2 border-b border-slate-50 bg-white">
-                <span class="text-[10px] font-black uppercase text-slate-700 truncate leading-tight">
-                    ${c.Ten_San || id}
-                </span>
-                <div class="flex flex-col mt-0.5">
-                    <span class="text-[8px] font-bold text-blue-500 italic uppercase leading-none">
-                        ${type}
+        courtEntries.forEach(([id, c]) => {
+            const type = c.Loai_San || 'Standard';
+            const price = priceTable[type] || 0;
+
+            namesHtml += `
+                <div class="h-16 flex flex-col justify-center px-2 border-b border-slate-50 bg-white">
+                    <span class="text-[10px] font-black uppercase text-slate-700 truncate leading-tight">
+                        ${c.Ten_San || id}
                     </span>
-                    <span class="text-[9px] font-black text-rose-600 mt-1">
-                        ${price > 0 ? (price / 1000).toLocaleString() + 'K' : '---'}
-                    </span>
-                </div>
-            </div>`;
+                    <div class="flex flex-col mt-0.5">
+                        <span class="text-[8px] font-bold text-blue-500 italic uppercase leading-none">
+                            ${type}
+                        </span>
+                        <span class="text-[9px] font-black text-rose-600 mt-1">
+                            ${price > 0 ? (price / 1000).toLocaleString() + 'K' : '---'}
+                        </span>
+                    </div>
+                </div>`;
 
-        // Phần render timeline bên phải (giữ nguyên)
-        const courtBks = Object.entries(bookings).filter(([bid, b]) => b.Court_ID === id && b.Ngay === date);
-        rowsHtml += `
-    <div class="h-16 flex border-b border-slate-50 relative w-max" 
-         style="min-width: calc(17 * 60px);" 
-         onclick="bookingOnline.handleTimelineClick(event, '${id}', '${date}', '${c.Ten_San || id}')">
-        ${Array.from({length: 17}).map(() => `<div class="hour-cell border-l border-slate-50 flex-shrink-0" style="width: 60px;"></div>`).join('')}
-        ${bookingOnline.renderSlots(courtBks)}
-        ${(date === today && c.Trang_Thai === "Đang chơi") ? bookingOnline.renderLiveStatus(c.Gio_Vao) : ''}
-    </div>`;
-    });
+            // Lọc chính xác các lịch đặt của sân này trong ngày chọn
+            const courtBks = Object.entries(bookings).filter(([bid, b]) => b && b.Court_ID === id && b.Ngay === date);
 
-    namesCol.innerHTML = namesHtml;
-    rowsContainer.innerHTML = rowsHtml;
-},
-closeForm: () => {
-    const form = document.getElementById('quick-booking-form');
-    const overlay = document.getElementById('form-overlay');
+            rowsHtml += `
+                <div class="h-16 flex border-b border-slate-50 relative w-max" 
+                     style="min-width: calc(17 * 60px);" 
+                     onclick="bookingOnline.handleTimelineClick(event, '${id}', '${date}', '${c.Ten_San || id}')">
+                    ${Array.from({length: 17}).map(() => `<div class="hour-cell border-l border-slate-50 flex-shrink-0" style="width: 60px; height: 64px;"></div>`).join('')}
+                    ${bookingOnline.renderSlots(courtBks)}
+                    ${(date === today && c.Trang_Thai === "Đang chơi") ? bookingOnline.renderLiveStatus(c.Gio_Vao) : ''}
+                </div>`;
+        });
 
-    if (form && overlay) {
-        // 1. Chạy hiệu ứng ẩn (trượt xuống và mờ đi)
-        overlay.classList.remove('opacity-100');
-        form.classList.remove('active');
+        namesCol.innerHTML = namesHtml;
+        rowsContainer.innerHTML = rowsHtml;
+        console.log("🎨 Đã vẽ xong " + courtEntries.length + " sân!");
+    },
 
-        // 2. Đợi hiệu ứng kết thúc (300ms) rồi mới ẩn hoàn toàn khỏi màn hình
-        setTimeout(() => {
-            overlay.classList.add('hidden');
-        }, 300);
-    }
-},
     renderSlots: (bookings) => {
-        if (!bookings || bookings.length === 0) return ''; // Fix lỗi undefined
+        if (!bookings || bookings.length === 0) return '';
         return bookings.map(([id, b]) => {
             if (!b.Bat_Dau || !b.Ket_Thuc) return '';
             const [hS, mS] = b.Bat_Dau.split(':').map(Number);
@@ -129,14 +112,11 @@ closeForm: () => {
     },
 
     renderLiveStatus: (gioVao) => {
-        if (!gioVao) return ''; // Fix lỗi undefined
+        if (!gioVao) return '';
         const [hS, mS] = gioVao.split(':').map(Number);
         const now = new Date();
-        const hNow = now.getHours();
-        const mNow = now.getMinutes();
-        
         const left = (hS - 6 + mS/60) * 60;
-        let width = (hNow - hS + (mNow - mS)/60) * 60;
+        let width = (now.getHours() - hS + (now.getMinutes() - mS)/60) * 60;
         if (width < 20) width = 20;
 
         return `
@@ -147,59 +127,47 @@ closeForm: () => {
     },
 
     handleTimelineClick: (event, courtId, date, courtName) => {
-    if (event.target.closest('.online-booking-slot')) return;
+        if (event.target.closest('.online-booking-slot')) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        const offsetX = event.clientX - rect.left;
+        let hourDecimal = (offsetX / 60) + 6;
+        hourDecimal = Math.round(hourDecimal * 2) / 2; 
+        const hour = Math.floor(hourDecimal);
+        const minute = (hourDecimal % 1) * 60;
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const offsetX = event.clientX - rect.left;
-    let hourDecimal = (offsetX / 60) + 6;
-    hourDecimal = Math.round(hourDecimal * 2) / 2; 
-    
-    const hour = Math.floor(hourDecimal);
-    const minute = (hourDecimal % 1) * 60;
-    const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-    const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        const elId = document.getElementById('book-court-id');
+        const elDate = document.getElementById('book-date');
+        const elStart = document.getElementById('book-start');
+        const elEnd = document.getElementById('book-end');
+        
+        if (elId) elId.value = courtId;
+        if (elDate) elDate.value = date;
+        if (elStart) elStart.value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        if (elEnd) elEnd.value = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
-    // Lấy các thẻ HTML
-    const elId = document.getElementById('book-court-id');
-    const elDate = document.getElementById('book-date');
-    const elStart = document.getElementById('book-start');
-    const elEnd = document.getElementById('book-end');
-    const elDisplayName = document.getElementById('display-court-name');
-    const elDisplayDate = document.getElementById('display-booking-date'); // Thẻ hiển thị ngày mới
-
-    // Gán dữ liệu vào các input ẩn
-    if (elId) elId.value = courtId;
-    if (elDate) elDate.value = date;
-    if (elStart) elStart.value = startTime;
-    if (elEnd) elEnd.value = endTime;
-    
-    // ĐỔ DỮ LIỆU HIỂN THỊ LÊN FORM
-    if (elDisplayName) {
-        elDisplayName.innerText = courtName || courtId;
-    }
-
-    if (elDisplayDate && date) {
-        // Chuyển YYYY-MM-DD thành DD/MM/YYYY cho thân thiện
+        document.getElementById('display-court-name').innerText = courtName;
         const [y, m, d] = date.split('-');
-        elDisplayDate.innerText = `${d}/${m}/${y}`;
-    }
+        document.getElementById('display-booking-date').innerText = `${d}/${m}/${y}`;
 
-    // Hiển thị Form
-    const form = document.getElementById('quick-booking-form');
-    const overlay = document.getElementById('form-overlay');
-    if(overlay && form) {
-        overlay.classList.remove('hidden');
-        setTimeout(() => {
-            overlay.classList.add('opacity-100');
-            form.classList.add('active');
-        }, 10);
-    }
-},
+        const form = document.getElementById('quick-booking-form');
+        const overlay = document.getElementById('form-overlay');
+        if(overlay && form) {
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.add('opacity-100');
+                form.classList.add('active');
+            }, 10);
+        }
+    },
 
     closeForm: () => {
-        document.getElementById('form-overlay').classList.remove('opacity-100');
-        document.getElementById('quick-booking-form').classList.remove('active');
-        setTimeout(() => document.getElementById('form-overlay').classList.add('hidden'), 300);
+        const form = document.getElementById('quick-booking-form');
+        const overlay = document.getElementById('form-overlay');
+        if(form && overlay) {
+            overlay.classList.remove('opacity-100');
+            form.classList.remove('active');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
     },
 
     confirm: async () => {
@@ -213,34 +181,12 @@ closeForm: () => {
         if (!name || !phone) return alert("Vui lòng nhập tên và số điện thoại!");
 
         try {
-            const today = new Date().toISOString().split('T')[0];
-            const now = new Date();
-            const nowStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-            if (date === today) {
-                const courtSnap = await window.get(window.ref(window.db, `courts/${courtId}`));
-                if (courtSnap.val()?.Trang_Thai === "Đang chơi" && start < nowStr) {
-                    return alert("❌ Sân đang bận chơi trực tiếp. Vui lòng đặt sau " + nowStr);
-                }
-            }
-
-            const snap = await window.get(window.ref(window.db, 'bookings'));
-            const bks = snap.val() || {};
-            const toMin = t => t.split(':').reduce((h, m) => h * 60 + +m);
-            const isOver = Object.values(bks).some(b => 
-                b.Court_ID === courtId && b.Ngay === date && 
-                toMin(start) < toMin(b.Ket_Thuc) && toMin(end) > toMin(b.Bat_Dau)
-            );
-
-            if (isOver) return alert("❌ Khung giờ này đã bị trùng lịch!");
-
             const newId = "BK-ON-" + Date.now();
             await window.set(window.ref(window.db, `bookings/${newId}`), {
                 Court_ID: courtId, Ngay: date, Bat_Dau: start, Ket_Thuc: end,
                 Ten_Khach: name + " (Web)", SDT: phone, Trang_Thai: "Chờ xác nhận",
-                Tien_Coc: 0, Note: "Đặt từ Mobile"
+                Tien_Coc: 0, Note: "Đặt từ Website Online"
             });
-
             alert("✅ Đặt sân thành công! Chúng tôi sẽ liên hệ sớm.");
             bookingOnline.closeForm();
         } catch (e) { alert("Lỗi: " + e.message); }
