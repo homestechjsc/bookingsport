@@ -7,11 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Tối ưu Grid: Cột tên sân rộng hơn một chút để hiện giá tiền */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+
         .timeline-container { 
             display: grid; 
-            grid-template-columns: 90px 1fr; 
-            border-radius: 1rem; 
+            grid-template-columns: 100px 1fr; 
+            border-radius: 1.5rem; 
             overflow: hidden; 
             background: white; 
         }
@@ -26,135 +28,144 @@
         .scrollable-timeline { 
             overflow-x: auto; 
             -webkit-overflow-scrolling: touch; 
+            scrollbar-width: none;
         }
-        #timeline-rows, #timeline-hours-header { 
-            width: max-content; 
-        }
-        /* Ẩn thanh cuộn để giao diện sạch hơn */
         .scrollable-timeline::-webkit-scrollbar { display: none; }
+
+        #timeline-rows, #timeline-hours-header { width: max-content; }
         
         /* Hiệu ứng Bottom Sheet */
         #quick-booking-form { 
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
             transform: translateY(100%); 
         }
-        #quick-booking-form.active { 
-            transform: translateY(0); 
-        }
+        #quick-booking-form.active { transform: translateY(0); }
         
-        /* Hiệu ứng Overlay */
-        #form-overlay {
-            transition: opacity 0.3s ease;
-        }
+        .hour-cell { width: 60px; flex-shrink: 0; }
+        
+        /* Hiệu ứng chọn ô */
+        .timeline-row:active { background-color: #f8fafc; }
     </style>
 </head>
 <body class="bg-slate-50 antialiased">
     <header class="bg-white sticky top-0 z-40 border-b p-4 flex justify-between items-center shadow-sm">
-        <h1 class="font-black text-blue-600 italic tracking-tighter text-xl">ĐẶT SÂN <span class="text-slate-800">ONLINE</span></h1>
+        <div>
+            <h1 class="font-black text-blue-600 italic tracking-tighter text-xl leading-none">PMS <span class="text-slate-800">ONLINE</span></h1>
+            <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hệ thống đặt sân trực tuyến</p>
+        </div>
         <div class="relative">
-            <input type="date" id="view-date" class="bg-slate-100 rounded-xl p-2.5 text-xs font-bold border-none outline-none text-slate-700 focus:ring-2 ring-blue-500">
+            <input type="date" id="view-date" class="bg-slate-100 rounded-xl p-2.5 text-xs font-black border-none outline-none text-blue-600 focus:ring-2 ring-blue-500">
         </div>
     </header>
 
-    <main class="p-2 sm:p-4">
+    <main class="p-2 sm:p-4 max-w-4xl mx-auto">
         <div class="timeline-container shadow-2xl border border-slate-200">
             <div class="sticky-column flex flex-col pt-10" id="court-names-col">
-                </div>
+                <div class="p-4 text-center opacity-20"><i class="fa-solid fa-circle-notch animate-spin"></i></div>
+            </div>
 
             <div class="scrollable-timeline">
-                <div id="timeline-hours-header" class="flex bg-slate-50/50 border-b h-10">
+                <div id="timeline-hours-header" class="flex bg-slate-50/80 backdrop-blur-sm border-b h-10 items-center">
                     </div>
-                <div id="timeline-rows" class="relative bg-white min-h-[400px]">
+                <div id="timeline-rows" class="relative bg-white min-h-[300px] divide-y divide-slate-50">
                     </div>
             </div>
         </div>
         
-        <div class="mt-6 flex flex-wrap gap-4 justify-center">
-            <div class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
-                <span class="w-3 h-3 bg-slate-200 rounded-sm border border-slate-300"></span> Đã đặt
+        <div class="mt-8 grid grid-cols-3 gap-2">
+            <div class="bg-white p-3 rounded-2xl border flex flex-col items-center gap-1 shadow-sm">
+                <span class="w-full h-1.5 bg-slate-200 rounded-full"></span>
+                <span class="text-[9px] font-black uppercase text-slate-400">Đã đặt</span>
             </div>
-            <div class="flex items-center gap-1.5 text-[10px] font-bold text-orange-500">
-                <span class="w-3 h-3 bg-orange-100 rounded-sm border border-orange-400"></span> Đang chơi
+            <div class="bg-white p-3 rounded-2xl border flex flex-col items-center gap-1 shadow-sm border-orange-100">
+                <span class="w-full h-1.5 bg-orange-500 rounded-full"></span>
+                <span class="text-[9px] font-black uppercase text-orange-500">Đang chơi</span>
             </div>
-            <div class="flex items-center gap-1.5 text-[10px] font-bold text-blue-500">
-                <span class="w-3 h-3 bg-white rounded-sm border border-slate-200"></span> Còn trống
+            <div class="bg-white p-3 rounded-2xl border flex flex-col items-center gap-1 shadow-sm border-blue-100">
+                <span class="w-full h-1.5 bg-blue-500 rounded-full"></span>
+                <span class="text-[9px] font-black uppercase text-blue-500">Còn trống</span>
             </div>
         </div>
+
+        <p class="text-center text-[10px] text-slate-400 mt-8 font-medium">Nhấn vào khoảng trống trên lịch để giữ chỗ</p>
     </main>
 
     <div id="form-overlay" 
          onclick="bookingOnline.closeForm()" 
-         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] hidden opacity-0 transition-opacity">
+         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] hidden transition-opacity duration-300 opacity-0">
     </div>
 
     <div id="quick-booking-form" 
          class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] z-[60] p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] border-t border-slate-100 max-w-2xl mx-auto">
         
-        <div class="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mb-8" onclick="bookingOnline.closeForm()"></div>
+        <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8 cursor-pointer" onclick="bookingOnline.closeForm()"></div>
         
-        <h2 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-2 uppercase italic">
-            <i class="fa-solid fa- racquet text-blue-600"></i> Thông tin đặt sân
-        </h2>
-        <div class="mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-center gap-3">
-    <div class="flex-1 border-r border-blue-200">
-        <span class="text-[10px] font-black text-blue-400 uppercase block tracking-wider">Sân đang chọn</span>
-        <span id="display-court-name" class="text-lg font-black text-slate-400">---</span>
-    </div>
-    
-    <div class="flex-1 pl-2">
-        <span class="text-[10px] font-black text-blue-400 uppercase block tracking-wider">Ngày đặt</span>
-        <span id="display-booking-date" class="text-lg font-black text-slate-400">--/--/--</span>
-    </div>
-</div>
-        <div class="space-y-5">
+        <div class="flex justify-between items-start mb-6">
+            <h2 class="text-xl font-[900] text-slate-800 uppercase italic leading-none">
+                Thông tin <span class="text-blue-600">Đặt sân</span>
+            </h2>
+            <i class="fa-solid fa-ticket text-blue-100 text-3xl"></i>
+        </div>
+
+        <div class="mb-6 bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center gap-4">
+            <div class="flex-1 border-r border-slate-200">
+                <span class="text-[9px] font-black text-slate-400 uppercase block tracking-widest mb-1">Sân</span>
+                <span id="display-court-name" class="text-sm font-black text-blue-600 uppercase italic">---</span>
+            </div>
+            <div class="flex-1">
+                <span class="text-[9px] font-black text-slate-400 uppercase block tracking-widest mb-1">Ngày</span>
+                <span id="display-booking-date" class="text-sm font-black text-slate-700 uppercase italic">--/--/--</span>
+            </div>
+        </div>
+
+        <div class="space-y-4">
             <input type="hidden" id="book-court-id">
             <input type="hidden" id="book-date">
             
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Giờ vào</label>
-                    <input type="time" id="book-start" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border-2 border-transparent outline-none focus:bg-white focus:border-blue-200 transition-all">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-50 p-3 rounded-2xl border border-transparent focus-within:border-blue-500 transition-all">
+                    <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block">Giờ vào</label>
+                    <input type="time" id="book-start" class="w-full bg-transparent font-black text-lg outline-none text-slate-800">
                 </div>
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-[10px] font-black text-blue-500 uppercase ml-2">Giờ ra</label>
-                    <input type="time" id="book-end" class="w-full bg-slate-50 p-4 rounded-2xl font-bold border-2 border-blue-500 text-blue-600 outline-none shadow-lg shadow-blue-50/50">
+                <div class="bg-slate-50 p-3 rounded-2xl border border-transparent focus-within:border-blue-500 transition-all">
+                    <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block">Giờ ra</label>
+                    <input type="time" id="book-end" class="w-full bg-transparent font-black text-lg outline-none text-slate-800">
                 </div>
             </div>
 
-            <div class="relative group">
-                <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors"></i>
-                <input type="text" id="book-name" placeholder="Tên của bạn" 
-                       class="w-full bg-slate-50 p-4 pl-14 rounded-2xl font-bold border-2 border-transparent outline-none focus:bg-white focus:border-blue-500 transition-all">
-            </div>
+            <div class="space-y-3">
+                <div class="relative">
+                    <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" id="book-name" placeholder="Họ và tên của bạn" 
+                           class="w-full bg-slate-50 p-4 pl-12 rounded-2xl font-bold border-2 border-transparent outline-none focus:bg-white focus:border-blue-500 transition-all text-sm">
+                </div>
 
-            <div class="relative group">
-                <i class="fa-solid fa-phone absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors"></i>
-                <input type="tel" id="book-phone" placeholder="Số điện thoại liên hệ" 
-                       class="w-full bg-slate-50 p-4 pl-14 rounded-2xl font-bold border-2 border-transparent outline-none focus:bg-white focus:border-blue-500 transition-all">
+                <div class="relative">
+                    <i class="fa-solid fa-phone absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="tel" id="book-phone" placeholder="Số điện thoại" 
+                           class="w-full bg-slate-50 p-4 pl-12 rounded-2xl font-bold border-2 border-transparent outline-none focus:bg-white focus:border-blue-500 transition-all text-sm">
+                </div>
             </div>
             
             <button onclick="bookingOnline.confirm()" 
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black uppercase tracking-wider shadow-xl shadow-blue-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-2">
-                Xác nhận đặt ngay <i class="fa-solid fa-arrow-right text-xs"></i>
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-100 active:scale-95 transition-all mt-4 flex items-center justify-center gap-2">
+                Xác nhận giữ chỗ <i class="fa-solid fa-paper-plane text-[10px]"></i>
             </button>
-            
-            <button onclick="bookingOnline.closeForm()" class="w-full text-slate-400 font-bold text-xs py-2 uppercase tracking-widest hover:text-slate-600 transition-colors">Để sau</button>
         </div>
     </div>
 
     <script type="module">
-        // Import các file cấu hình
         import './js/firebase-config.js'; 
-        import './js/booking-logic.js';
+        import { bookingOnline } from './js/booking-logic.js';
 
-        // Khởi động hệ thống khi Firebase sẵn sàng
+        // Gán ra window để gọi từ HTML onclick
+        window.bookingOnline = bookingOnline;
+
         const checkReady = setInterval(() => {
             if (window.db && window.onValue) {
                 clearInterval(checkReady);
-                console.log("🚀 Hệ thống Booking đã thông tuyến!");
-                if (window.bookingOnline) {
-                    window.bookingOnline.init();
-                }
+                console.log("🚀 Hệ thống đã sẵn sàng.");
+                bookingOnline.init();
             }
         }, 100);
     </script>
